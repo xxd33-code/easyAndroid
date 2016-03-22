@@ -1,4 +1,4 @@
-package com.zjhcsoft.mobile.easyandroid.demo;
+package com.zjhcsoft.mobile.easyandroids.demo;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
