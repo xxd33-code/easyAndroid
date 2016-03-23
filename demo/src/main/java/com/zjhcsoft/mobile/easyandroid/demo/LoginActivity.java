@@ -197,7 +197,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             HcAction action = new HcAction("padquerymatch", "pda_login", userInfo,UserInfo.class);
             EasyClient.getDefault().url(mUrl.getText().toString().trim() + "/pdaquerymatch/pda_Match.action");
             EasyClient.getDefault().doAction(action);
-            Intent i = new Intent();
         }
     }
 
