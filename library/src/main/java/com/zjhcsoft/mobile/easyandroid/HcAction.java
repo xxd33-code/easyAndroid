@@ -2,16 +2,29 @@ package com.zjhcsoft.mobile.easyandroid;
 
 import com.google.gson.Gson;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.lang.reflect.ParameterizedType;
+import java.net.FileNameMap;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+
+import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.Request;
 
 /**
  * Created by finger on 16/3/16.
  * 根据目前HC公司交互接口文档定义进行实现的请求类
  */
-public class HcAction<T> extends AbstractAction<T> {
+public class HcAction extends AbstractAction {
+    /**
+     * 无返回数据
+     */
+    public static final int UNKNOW_ERROR = 1;
+
     /**
      * SYSID
      **/
@@ -22,32 +35,47 @@ public class HcAction<T> extends AbstractAction<T> {
      **/
     private static String SIGNKEY = "fe473d9c-0cdb-43e2-9086-51145e7065c2";
 
-
     /**
-     * @param addr 请求地址
-     * @param req  请求对象
+     * 构造函数
+     *
+     * @param addr        请求地址
+     * @param req         请求对象
+     * @param responseCls 响应类型
      */
-    public HcAction(ActionAddress addr, Object req) {
-        super(addr, req);
+    public HcAction(ActionAddress addr, Object req, Class<?> responseCls) {
+        super(addr, req, responseCls);
     }
 
+    /**
+     * 构造函数
+     *
+     * @param service     服务名
+     * @param method      方法名
+     * @param req         请求对象
+     * @param responseCls 响应类型
+     */
+    public HcAction(String service, String method, Object req, Class<?> responseCls) {
+        this(new ActionAddress(service, method), req, responseCls);
+    }
 
     @Override
-    protected HashMap<String, Object> build() {
+    protected Request build() {
         Gson gson = new Gson();
         if (request != null) {
             HcRequest req = new HcRequest(address.getService(), address.getMethod(), request);
-            String json = gson.toJson(req);
-            HashMap<String, Object> postData = new HashMap<String, Object>();
+            String reqJson = gson.toJson(req);
+            FormBody.Builder formBody = new FormBody.Builder();
             try {
                 SimpleDateFormat format = new SimpleDateFormat(
                         "yyyy-MM-dd HH:mm:ss");
                 String timestamp = format.format(new Date());
-                String sign = sign(SYSID, json, timestamp);
-                postData.put("sysid", SYSID);
-                postData.put("timestamp", timestamp);
-                postData.put("sign", sign);
-                return postData;
+                String sign = sign(SYSID, reqJson, timestamp);
+                formBody.addEncoded("sysid", SYSID);
+                formBody.addEncoded("timestamp", timestamp);
+                formBody.addEncoded("sign", sign);
+                formBody.addEncoded("v", "1.0");
+                formBody.addEncoded("req", reqJson);
+                return new Request.Builder().url(address.getUrl()).post(formBody.build()).build();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -56,15 +84,23 @@ public class HcAction<T> extends AbstractAction<T> {
     }
 
     @Override
-    protected T parse(String json) {
+    protected void parse(String json) {
         if (json != null) {
             Gson gson = new Gson();
-            HcResponse response = gson.fromJson(json, HcResponse.class);
-            ParameterizedType p = (ParameterizedType) getClass().getGenericSuperclass();
-            //getActualTypeArguments获取参数化类型的数组，泛型可能有多个
-            return gson.fromJson(response.returnValue, p.getActualTypeArguments()[0]);
+            HcResponse hcResponse = gson.fromJson(json, HcResponse.class);
+            if (HcResponse.STATUS_OK.equals(hcResponse.status)) {
+                code = OK;
+            } else {
+                code = UNKNOW_ERROR;
+            }
+            message = hcResponse.message;
+            try {
+                JSONObject obj = new JSONObject(json);
+                response = gson.fromJson(obj.getString("returnValue"), mResponseCls);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
-        return null;
     }
 
     /**
@@ -81,7 +117,6 @@ public class HcAction<T> extends AbstractAction<T> {
         StringBuilder sb = new StringBuilder();
         sb.append(SIGNKEY).append(sysid).append(req).append(timestamp)
                 .append(SIGNKEY);
-
         java.security.MessageDigest alga;
         try {
             alga = java.security.MessageDigest.getInstance("MD5");
@@ -155,7 +190,7 @@ public class HcAction<T> extends AbstractAction<T> {
         /**
          * 返回值
          */
-        private String returnValue = "";
+        private JSONObject returnValue = null;
     }
 
     /**

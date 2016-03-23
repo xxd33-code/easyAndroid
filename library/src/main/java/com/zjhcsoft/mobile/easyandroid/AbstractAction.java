@@ -1,13 +1,15 @@
 package com.zjhcsoft.mobile.easyandroid;
 
 
-import java.util.HashMap;
+import org.json.JSONException;
+
+import okhttp3.Request;
 
 /**
  * Created by finger on 16/3/16.
  * 抽象请求类
  */
-public abstract class AbstractAction<T> {
+public abstract class AbstractAction {
     /**
      * 网络和业务上均正常响应
      */
@@ -24,6 +26,11 @@ public abstract class AbstractAction<T> {
     public static final int NSR = -2;
 
     /**
+     * 响应类的类型
+     */
+    protected final Class<?> mResponseCls;
+
+    /**
      * 请求地址
      */
     protected ActionAddress address = null;
@@ -34,6 +41,11 @@ public abstract class AbstractAction<T> {
     protected Object request = null;
 
     /**
+     * 响应对象
+     */
+    protected Object response = null;
+
+    /**
      * 网络异常时返回ERROR,业务正常时返回OK,网络正常但业务错误返回>0
      */
     public int code = NSR;
@@ -41,19 +53,21 @@ public abstract class AbstractAction<T> {
     /**
      * 错误信息
      */
-    public String message = "交互尚未请求";
+    public String message = "交互尚未请求或其他异常";
 
     /**
-     * @param addr      请求地址
-     * @param req       请求对象
+     * @param addr        请求地址
+     * @param req         请求对象
+     * @param responseCls 响应类型
      */
-    protected AbstractAction(ActionAddress addr, Object req) {
+    protected AbstractAction(ActionAddress addr, Object req, Class<?> responseCls) {
         address = addr;
         request = req;
+        mResponseCls = responseCls;
     }
 
     /**
-     * @return  交易地址
+     * @return 交易地址
      */
     public ActionAddress getAddress() {
         return address;
@@ -67,13 +81,22 @@ public abstract class AbstractAction<T> {
     }
 
     /**
+     * 交互返回的响应对象
+     *
+     * @return 响应对象
+     */
+    public Object getResponse() {
+        return response;
+    }
+
+    /**
      * 构建请求
      */
-    protected abstract HashMap<String, Object> build();
+    protected abstract Request build();
 
     /**
      * @param json 返回的json数据
      * @return 响应Bean
      */
-    protected abstract T parse(String json);
+    protected abstract void parse(String json);
 }

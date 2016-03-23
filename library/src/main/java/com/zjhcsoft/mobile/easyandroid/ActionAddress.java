@@ -6,7 +6,7 @@ package com.zjhcsoft.mobile.easyandroid;
  */
 public class ActionAddress {
     //服务器域名或地址
-    private String url = "127.0.0.1";
+    private String url = "";
     //服务名
     private String service = "";
     //方法名
